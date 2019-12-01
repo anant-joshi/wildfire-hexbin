@@ -18,18 +18,13 @@ control = d3.select(".control-container")
 control.append("g").style("font-size", "25pt").attr("id", "yearTitle");
 
 
-var yearSlider = control
-    .append("input")
-    .attr("type", "range")
-    .attr("class", "slider")
-    .attr("id", "yearSlider");
 
 
 var projection = d3.geoAlbersUsa();
 
 //this function can project a point like [x, y] into the chart coords
 var path = d3.geoPath().projection(projection);
-var hexbin = d3.hexbin().extent([[0, 0], [width, height]]).radius(0.2);
+var hexbin = d3.hexbin().extent([[0, 0], [width, height]]).radius(0.5);
 
 function plotChartByYear(hexGroup, dataByYear) {
     hexGroup.selectAll("*").remove();
@@ -54,7 +49,7 @@ function plotChartByYear(hexGroup, dataByYear) {
 		}
 	}
 
-	var radius_scale = d3.scaleLinear().domain([min_fires, max_fires]).range([2, 20])
+	var radius_scale = d3.scaleLinear().domain([min_fires, max_fires]).range([2, 15])
 
     // console.log(hexbin(csvData));
     printOnce = true
@@ -70,10 +65,21 @@ function plotChartByYear(hexGroup, dataByYear) {
 		//contains the x, y, array of datapoints corresponding to bin
 		// TODO: Calculate the radius according to length,
 		// TODO: Calculate color according to number of MANMADEs
-		console.log(d);
+		// console.log(d);
 		printOnce = false;
 		}
-	    p  = projection([d.x, d.y])
+	    lats = 0;
+	    longs = 0;
+	    for(i = 0; i < d.length; i++){
+		lats = lats + parseFloat(d[i]['1']);
+		longs = longs + parseFloat(d[i]['0']);
+	    }
+	    lats = lats/d.length;
+	    longs = longs/d.length;
+	    // console.log(lats+"\t"+longs);
+
+
+	    p  = projection([longs, lats])
 	    if(p == null){
 		return "translate(0,0)";
 	    }
@@ -92,7 +98,7 @@ function plotChartByYear(hexGroup, dataByYear) {
 		manmade_ratio = sum_manmade/d.length
 		return d3.interpolateRdYlBu(1-manmade_ratio) 
 	})
-	.attr("fill-opacity", "0.4");
+	.attr("fill-opacity", "0.7");
 
     //TODO: Add color attribute or add colorscale
 	// This radius can be changed with a d3.scaleXXX
@@ -159,7 +165,11 @@ Promise.all([
     years = [...new Set(csvData.map(d => d.FIRE_YEAR))];
     maxYear = Math.max(...years);
     minYear = Math.min(...years);
-    yearSlider
+    yearSlider = control
+	.append("input")
+	.attr("type", "range")
+	.attr("class", "slider")
+	.attr("id", "yearSlider")
 	.attr("min", minYear)
 	.attr("max", maxYear)
 	.attr("defaultValue", minYear);
@@ -167,18 +177,18 @@ Promise.all([
     slider = document.getElementById("yearSlider");
     dataByYear = csvData.filter(d => d.FIRE_YEAR == slider.value);
     plotChartByYear(hexbinGroup, dataByYear);
-    d3.select("#yearTitle").html("Year: "+slider.value);
+
+    title = d3.select("#yearTitle");
+    title.html("Year: "+slider.value);
 
     yearSlider.on("input", (d, i) => {
-	d3.select("#yearTitle").html("Year: "+slider.value);
+	title.html("Year: "+slider.value);
     });
 
     yearSlider.on("change", () => {
 	dataByYear = csvData.filter(d => d.FIRE_YEAR == slider.value);
-	d3.select("#yearTitle").html("Year: "+slider.value);
 	plotChartByYear(hexbinGroup, dataByYear);
     });
-
 
     // plotChartByYear(hexbinGroup, csvData, yearSlider.attr("value")); 
 
