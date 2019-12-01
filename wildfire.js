@@ -54,6 +54,8 @@ function plotChartByYear(hexGroup, dataByYear) {
 		}
 	}
 
+	var radius_scale = d3.scaleLinear().domain([min_fires, max_fires]).range([2, 20])
+
     // console.log(hexbin(csvData));
     printOnce = true
 
@@ -79,14 +81,18 @@ function plotChartByYear(hexGroup, dataByYear) {
 	    y_ = p[1];
 	    return "translate(" + x_ + "," + y_ + ")"
 	})
-	.attr("d", hexbin.hexagon(2))
+	.attr("d", function(d){
+		return hexbin.hexagon(radius_scale(d.length))
+	})
 	.attr("fill", function(d) { 
 		sum_manmade = 0
 		for(i = 0; i<d.length; i++){
 			sum_manmade += parseInt(d[i].MANMADE)
 		}
 		manmade_ratio = sum_manmade/d.length
-		return d3.interpolateRdYlBu(1-manmade_ratio) });
+		return d3.interpolateRdYlBu(1-manmade_ratio) 
+	})
+	.attr("fill-opacity", "0.4");
 
     //TODO: Add color attribute or add colorscale
 	// This radius can be changed with a d3.scaleXXX
