@@ -39,17 +39,31 @@ function plotChartByYear(hexGroup, data, year) {
     }
     hexbin.y = d => {
 	return parseFloat(d['1']);
-    }
+	}
+	max_fires = 0
+	min_fires = 100000
+	manmade_ratio = 0
+
+	binned_data = hexbin(dataByYear)
+
+	for(i = 0; i<binned_data.length; i++){
+		if(binned_data[i].length > max_fires){
+			max_fires = binned_data[i].length
+		}
+		if(binned_data[i].length < min_fires){
+			min_fires = binned_data[i].length
+		}
+	}
 
     // console.log(hexbin(csvData));
     printOnce = true
 
     hexGroup.selectAll("path")
-	.data(hexbin(dataByYear))
+	.data(binned_data)
 	.enter()
 	.append("path")
 	.attr("transform", function(d) {
-	    // projecting the lat/longs into the chart coords
+		// projecting the lat/longs into the chart coords
 	    if(printOnce){
 		// Sample output from hexbin
 		//contains the x, y, array of datapoints corresponding to bin
@@ -57,7 +71,7 @@ function plotChartByYear(hexGroup, data, year) {
 		// TODO: Calculate color according to number of MANMADEs
 		console.log(d);
 		printOnce = false;
-	    }
+		}
 	    p  = projection([d.x, d.y])
 	    if(p == null){
 		return "translate(0,0)";
@@ -65,9 +79,20 @@ function plotChartByYear(hexGroup, data, year) {
 	    x_ = p[0];
 	    y_ = p[1];
 	    return "translate(" + x_ + "," + y_ + ")"
-	}).attr("d", hexbin.hexagon(2));
+	})
+	.attr("d", hexbin.hexagon(2))
+	.attr("fill", function(d) { 
+		sum_manmade = 0
+		for(i = 0; i<d.length; i++){
+			sum_manmade += parseInt(d[i].MANMADE)
+		}
+		manmade_ratio = sum_manmade/d.length
+		return d3.interpolateRdYlBu(1-manmade_ratio) });
+
     //TODO: Add color attribute or add colorscale
-    // This radius can be changed with a d3.scaleXXX
+	// This radius can be changed with a d3.scaleXXX
+	
+	console.log(max_fires)
 }
 
 Promise.all([
