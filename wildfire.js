@@ -15,7 +15,7 @@ var hexbinGroup = svg.append("g");
 
 control = d3.select(".control-container")
 
-control.append("g").style("font-size", "25pt").html("Year");
+control.append("g").style("font-size", "25pt").attr("id", "yearTitle");
 
 
 var yearSlider = control
@@ -134,15 +134,18 @@ Promise.all([
     slider = document.getElementById("yearSlider");
     dataByYear = csvData.filter(d => d.FIRE_YEAR == slider.value);
     plotChartByYear(hexbinGroup, dataByYear);
+    d3.select("#yearTitle").html("Year: "+slider.value);
 
-    // yearSlider.on("input", (d, i) => {
-    // 	console.log(slider.value);
-    // });
+    yearSlider.on("input", (d, i) => {
+	d3.select("#yearTitle").html("Year: "+slider.value);
+    });
 
     yearSlider.on("change", () => {
 	dataByYear = csvData.filter(d => d.FIRE_YEAR == slider.value);
+	d3.select("#yearTitle").html("Year: "+slider.value);
 	plotChartByYear(hexbinGroup, dataByYear);
     });
+
 
     // plotChartByYear(hexbinGroup, csvData, yearSlider.attr("value")); 
 
