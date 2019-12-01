@@ -1,0 +1,17 @@
+.col-container {
+    display: flex;
+}
+
+.chart-container {
+    flex: 75%;
+    padding: 20px;
+}
+
+.control-container {
+    flex: 25%;
+    padding: 30px;
+}
+
+.slider{
+    width: 100%;
+}

@@ -1,15 +1,29 @@
-const width = 1100, height = 500;
+const width = 900, height = 500;
 
-var svg = d3.select("body")
+var svg = d3.select(".chart-container")
     .append("svg")
-    .attr("viewBox", [0, 0, width, height]);
+    .attr("viewBox", [0, 0, width, height])
+    .style("preserveAspectRatio", "xMidYMid meet")
+    .attr("position", "absolute");
     // .attr("width", width)
     // .attr("height", height);
 
 //Need two separate groups for state/county boundaries
-var g2 = svg.append("g");
-// and hexbins.
-var g1 = svg.append("g");
+var boundaryGroup = svg.append("g");
+// and hexbins.  
+var hexbinGroup = svg.append("g");
+
+control = d3.select(".control-container")
+
+control.append("g").style("font-size", "25pt").html("Year");
+
+
+var yearSlider = control
+    .append("input")
+    .attr("type", "range")
+    .attr("class", "slider")
+    .attr("id", "yearSlider");
+
 
 var projection = d3.geoAlbersUsa();
 
@@ -17,40 +31,9 @@ var projection = d3.geoAlbersUsa();
 var path = d3.geoPath().projection(projection);
 var hexbin = d3.hexbin().extent([[0, 0], [width, height]]).radius(0.2);
 
-Promise.all([
-    d3.tsv("./wildfire-year.tsv"), // Replace LONGITUDE with 0, and LATITUDE with 1
-    d3.json("./10m.json") // counties-10m.json taken from https://github.com/topojson/us-atlas
-]).then(([csvData, topoJsonData]) => {
-    // Process data after loading
-    states = topojson.feature(topoJsonData, topoJsonData.objects.states);
-    counties = topojson.feature(topoJsonData, topoJsonData.objects.counties);
-
-    // Print state boundaries
-    g2.selectAll("path")
-	.data(states.features)
-	.enter()
-	.append("path")
-	.attr("d", path)
-	.attr("stroke", "black")
-	.attr("fill", "rgba(0,0,0,0)")
-	.attr("stroke-width", 1.0);
-
-    // Print county boundaries
-    g2.selectAll("path")
-	.data(counties.features)
-	.enter()
-	.append("path")
-	.attr("d", path)
-	.attr("stroke", "gray")
-	.attr("fill", "rgba(0,0,0,0)")
-	.attr("stroke-width", 0.5);
-
-
-    // These functions are the functions that hexbin
-    // requires to calculate the x and y coordinate
-
-    // For some reason, the LATITUDE and LONGITUDE keys aren't working,
-    // so I used and 1. The data files have been adjusted accordingly
+function plotChartByYear(hexGroup, data, year) {
+    dataByYear = data.filter(d => d.FIRE_YEAR == year)
+    hexGroup.selectAll("*").remove();
     hexbin.x = d => {
 	return parseFloat(d['0']);
     }
@@ -61,8 +44,8 @@ Promise.all([
     // console.log(hexbin(csvData));
     printOnce = true
 
-    g1.selectAll("path")
-	.data(hexbin(csvData))
+    hexGroup.selectAll("path")
+	.data(hexbin(dataByYear))
 	.enter()
 	.append("path")
 	.attr("transform", function(d) {
@@ -85,4 +68,54 @@ Promise.all([
 	}).attr("d", hexbin.hexagon(2));
     //TODO: Add color attribute or add colorscale
     // This radius can be changed with a d3.scaleXXX
+}
+
+Promise.all([
+    d3.tsv("./wildfire-year.tsv"), // Replace LONGITUDE with 0, and LATITUDE with 1
+    d3.json("./10m.json") // counties-10m.json taken from https://github.com/topojson/us-atlas
+]).then(([csvData, topoJsonData]) => {
+    // Process data after loading
+    states = topojson.feature(topoJsonData, topoJsonData.objects.states);
+    counties = topojson.feature(topoJsonData, topoJsonData.objects.counties);
+
+
+    // Print state boundaries
+    boundaryGroup.selectAll("path")
+	.data(states.features)
+	.enter()
+	.append("path")
+	.attr("d", path)
+	.attr("stroke", "black")
+	.attr("fill", "rgba(0,0,0,0)")
+	.attr("stroke-width", 1.0);
+
+    // Print county boundaries
+    boundaryGroup.selectAll("path")
+	.data(counties.features)
+	.enter()
+	.append("path")
+	.attr("d", path)
+	.attr("stroke", "gray")
+	.attr("fill", "rgba(0,0,0,0)")
+	.attr("stroke-width", 0.5);
+
+    years = csvData.map(d => d.FIRE_YEAR)
+
+    maxYear = Math.max(...years);
+    minYear = Math.min(...years);
+    yearSlider
+	.attr("min", minYear)
+	.attr("max", maxYear)
+	.attr("value", minYear);
+
+    console.log(yearSlider.attr("value"));
+
+    plotChartByYear(hexbinGroup, csvData, yearSlider.attr("value")); 
+
+
+    // These functions are the functions that hexbin
+    // requires to calculate the x and y coordinate
+
+    // For some reason, the LATITUDE and LONGITUDE keys aren't working,
+    // so I used and 1. The data files have been adjusted accordingly
 });
