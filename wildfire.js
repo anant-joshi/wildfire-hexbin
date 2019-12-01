@@ -31,8 +31,7 @@ var projection = d3.geoAlbersUsa();
 var path = d3.geoPath().projection(projection);
 var hexbin = d3.hexbin().extent([[0, 0], [width, height]]).radius(0.2);
 
-function plotChartByYear(hexGroup, data, year) {
-    dataByYear = data.filter(d => d.FIRE_YEAR == year)
+function plotChartByYear(hexGroup, dataByYear) {
     hexGroup.selectAll("*").remove();
     hexbin.x = d => {
 	return parseFloat(d['0']);
@@ -95,14 +94,14 @@ function plotChartByYear(hexGroup, data, year) {
 	console.log(max_fires)
 }
 
+
 Promise.all([
-    d3.tsv("./wildfire-year.tsv"), // Replace LONGITUDE with 0, and LATITUDE with 1
+    d3.tsv("./wildfire-years.tsv"), // Replace LONGITUDE with 0, and LATITUDE with 1
     d3.json("./10m.json") // counties-10m.json taken from https://github.com/topojson/us-atlas
 ]).then(([csvData, topoJsonData]) => {
     // Process data after loading
     states = topojson.feature(topoJsonData, topoJsonData.objects.states);
     counties = topojson.feature(topoJsonData, topoJsonData.objects.counties);
-
 
     // Print state boundaries
     boundaryGroup.selectAll("path")
@@ -124,18 +123,28 @@ Promise.all([
 	.attr("fill", "rgba(0,0,0,0)")
 	.attr("stroke-width", 0.5);
 
-    years = csvData.map(d => d.FIRE_YEAR)
-
+    years = [...new Set(csvData.map(d => d.FIRE_YEAR))];
     maxYear = Math.max(...years);
     minYear = Math.min(...years);
     yearSlider
 	.attr("min", minYear)
 	.attr("max", maxYear)
-	.attr("value", minYear);
+	.attr("defaultValue", minYear);
 
-    console.log(yearSlider.attr("value"));
+    slider = document.getElementById("yearSlider");
+    dataByYear = csvData.filter(d => d.FIRE_YEAR == slider.value);
+    plotChartByYear(hexbinGroup, dataByYear);
 
-    plotChartByYear(hexbinGroup, csvData, yearSlider.attr("value")); 
+    // yearSlider.on("input", (d, i) => {
+    // 	console.log(slider.value);
+    // });
+
+    yearSlider.on("change", () => {
+	dataByYear = csvData.filter(d => d.FIRE_YEAR == slider.value);
+	plotChartByYear(hexbinGroup, dataByYear);
+    });
+
+    // plotChartByYear(hexbinGroup, csvData, yearSlider.attr("value")); 
 
 
     // These functions are the functions that hexbin
